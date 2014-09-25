@@ -20,7 +20,7 @@
 // gName = Created in global
 // fName = Created in main function
 // iName = Created for purposes of iteration (e.g. in a for loop)
-// sName = Created in a small scope e.g. for loop
+// sName = Created in a smaller scope e.g. if or while
 // ------------------------------------------------------------------------------------------------
 
 #include <iostream>
@@ -104,7 +104,7 @@ void S3Cal(TString fCalOption="") {
   Int_t fFinalChannel = fStartChannel + fNbrSectors + fNbrRings;
   
   // For each channel ..
-  for (Int_t iChannel=fStartChannel; iChannel<=fFinalChannel; iChannel++) {
+  for (Int_t iChannel=fStartChannel; iChannel<fFinalChannel; iChannel++) {
     // .. draw spectrum and output to histogram
     TString sCut = Form("ChannelNumber==%i",iChannel);
     TH1F *fHistogram = new TH1F("fHistogram", sCut, 200, 40000, 80000);
