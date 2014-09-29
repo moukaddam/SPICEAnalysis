@@ -29,7 +29,7 @@
 
 #include "TError.h"
 #include "TFile.h"
-#include "TChain.h"
+#include "TFolder.h"
 #include "TSpectrum.h"
 #include "TString.h"
 #include "TH1F.h"
@@ -94,8 +94,8 @@ void S3Cal(TString fCalOption="") {
   }
 
   // Open fragment tree
-  TChain *fChain = new TChain("FragmentTree");
-  fChain->Add("/data2/evitts/SpiceTestSep2014/FragmentTrees/fragment30126_000.root"); // TODO user option
+  TFile *fInputRootFile = new TFile("/data2/evitts/SpiceTestSep2014/Midas/his30126.root");
+  TFolder *fInputHistos = (TFolder*)(fInputRootFile->FindObjectAny("histos"));
   
   // S3 Details
   Int_t fNbrSectors = 32;
@@ -105,12 +105,13 @@ void S3Cal(TString fCalOption="") {
   
   // For each channel ..
   for (Int_t iChannel=fStartChannel; iChannel<fFinalChannel; iChannel++) {
-    // .. draw spectrum and output to histogram
-    TString sCut = Form("ChannelNumber==%i",iChannel);
-    TH1F *fHistogram = new TH1F("fHistogram", sCut, 200, 40000, 80000);
-    fChain->Draw( fGetArgument("Charge",fHistogram->GetName() ) ,sCut,"");
-    // .. add histo to relevant directory in root file
+    // .. get histogram
     TString fHistogramName = Form("Chrg%i",iChannel);
+    TH1F *hist = (TH1F*)(fInputHistos->FindObjectAny(fHistogramName));
+    TH1F *fHistogram = (TH1F*) hist->Clone("fHistogram");    
+    fHistogram->Rebin(2);
+    fHistogram->GetXaxis()->SetRangeUser(0, 700);
+    // .. add histo to relevant directory in root file  
     fHistogram->SetName(fHistogramName);
     gRootHistoDir->WriteTObject(fHistogram);
     // .. peak search function
@@ -150,19 +151,21 @@ Int_t fPeakSearch(Int_t iChannel, TH1F* fHistogram) {
   }
 
   // If triple-alpha calibration, check peaks are suitable distance apart
-  Double_t sFitWidth = 150.;
+  Double_t sFitWidth = 2.;
   vector<Double_t> sPeakConstant;
   vector<Double_t> sPeakCentroid;
   vector<Double_t> sPeakSigma;
   if (gAlphaOption) {
     Double_t sLeftGap = sPeaksPosition[1] - sPeaksPosition[0];
     Double_t sRightGap = sPeaksPosition[2] - sPeaksPosition[1];
-    if (abs(sLeftGap-sRightGap) > 1000) {
+    if (abs(sLeftGap-sRightGap) > 15) {
       cout << fHistogram->GetName() << " has failed to do a reasonable peak search, skipped." << endl;
       return 0;
     }
     if (sLeftGap < sRightGap) sFitWidth = sLeftGap/2.5; else sFitWidth = sRightGap/2.5;
   }
+  
+  
   
   gRootSearchDir->WriteTObject(fHistogram);
   
