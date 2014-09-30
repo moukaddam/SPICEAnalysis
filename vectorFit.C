@@ -36,6 +36,7 @@ void vectorFit(TString inFileName="", TString outFileName="", TString sFitFunc="
 
   // Variable Declaration
   Double_t inChannel, inChannelError, inEnergy, inEnergyError;
+  Double_t inSigma, inIntegral, inRms, inReducedChi2 ; 
   string inString;
 
   // Create output file
@@ -43,12 +44,14 @@ void vectorFit(TString inFileName="", TString outFileName="", TString sFitFunc="
   outFile.close();
 
   // Read input file
-  ifstream inFile(inFileName);  
+  ifstream inFile(inFileName);
+  // Exclude first line 
+  getline(inFile, inString);  
   while (true) {
     getline(inFile, inString);
     // Search for segment start and get the segment number
-    if (inString.substr(0, 7) == "Segment")
-      fSegment.push_back( inString.substr(8, 4) );
+    if (inString.substr(0, 5) == "Chan#")
+      fSegment.push_back( inString.substr(6, 4) );
     else if (inString.substr(0, 1) == "=") {
       // .. if the calibration info has ended, plot the data and clear vectors
       fPlot(outFileName, sFitFunc);  
@@ -56,7 +59,7 @@ void vectorFit(TString inFileName="", TString outFileName="", TString sFitFunc="
     } else {
       // .. read in each line of the calibration info and push to vector
       istringstream inStringStream(inString);
-      inStringStream >> inChannel >> inChannelError >> inEnergy >> inEnergyError;
+      inStringStream >> inEnergy >> inEnergyError >> inChannel >> inChannelError >> inSigma >> inIntegral >> inRms >> inReducedChi2 ;
       if (inFile.eof()) break;
       fAddToVectors(inChannel, inChannelError, inEnergy, inEnergyError);
     }
