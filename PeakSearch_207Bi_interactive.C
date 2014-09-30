@@ -232,8 +232,9 @@ void GetNextHistogram(int a ) {
 	cout << " Retreiving Channel : " << gChannel_current ;
 	cout << " ========================================="<< endl;
 	
-	//Write the channel number in file 
-	gPeaksFile << "#" <<gChannel_current << "\n" ;  
+	//Write the channel number in file
+	gPeaksFile << "=========================================\n";
+	gPeaksFile << "# " <<gChannel_current << "\n" ;  
 
 	//gCanvas->cd(1);
 	gHist_current->GetXaxis()->SetRangeUser(0,3500);
