@@ -52,6 +52,7 @@ Float_t  gMin = -1  ;
 Float_t  gMax = -1  ;
 ofstream  gPeaksFile;
 bool      gMinimumIsSet = false ; // the selection of range go in pairs (min max)  
+bool      gMaximumIsSet = false ; // the selection of range go in pairs (min max)  
 
 //___________________ FUNCTIONS
 void PrintFunctionList();
@@ -64,7 +65,9 @@ void WriteRebin();
 void GetControlBar();
 void RangeClicked();  
 void OpenPeaksFile();
+void ResetParameters();
 void Close(); 
+
 
 
 //___________________ Main
@@ -84,6 +87,17 @@ void PeakSearch_207Bi_interactive() {
 	
 }
 
+
+//___________________
+void ResetParameters() {
+
+	gBining=0 ; // Number of times the histogram was binned, pow(2,gBinning) is the number stored 
+	gMin = -1  ; 
+	gMax = -1  ;
+
+	gMinimumIsSet = false ; // the selection of range go in pairs (min max)  
+	gMaximumIsSet = false ; // the selection of range go in pairs (min max) 	
+}
 
 //______________________________________
 void PrintFunctionList() {
@@ -209,24 +223,26 @@ void GetControlBar() {
 void GetNextHistogram(int a ) {
 
 	if(!gCanvas) {
-	TString title = "Bi207" ;
+		//gCanvas->Delete();
+		TString title = "Bi207" ;
 		gCanvas = new TCanvas(title,title, 1200,700);
 		gCanvas->SetCrosshair(2);
 		gCanvas->SetFrameFillColor(kBlack);
+		gCanvas->AddExec("ex","RangeClicked()");
 		//gCanvas->Divide(1,3) ; 
 	}
 	
-	if (a>0)
-    gChannel_current++;
-    else 
-        gChannel_current--;
-        
-	TString hname = Form("Chrg%d", gChannel_current); // increase the value AFTER treating the present value
 	if (!gFolderHistos) {
 		cout << " You need to open a histogram folder first " <<endl ; 
 		return ; 
 	}
-	 
+	
+	if (a>0)
+    	gChannel_current++;
+    else 
+        gChannel_current--;
+        
+	TString hname = Form("Chrg%d", gChannel_current); 
 	gHist_current = (TH1F*)(gFolderHistos->FindObjectAny(hname));
 	cout << "=========================================";
 	cout << " Retreiving Channel : " << gChannel_current ;
@@ -236,6 +252,9 @@ void GetNextHistogram(int a ) {
 	gPeaksFile << "=========================================\n";
 	gPeaksFile << "# " <<gChannel_current << "\n" ;  
 
+	// Reset Parameters
+	ResetParameters() ; 
+	
 	//gCanvas->cd(1);
 	gHist_current->GetXaxis()->SetRangeUser(0,3500);
 	gHist_current->GetXaxis()->SetTitle("Energy (keV)");
@@ -251,10 +270,6 @@ void GetNextHistogram(int a ) {
 	
 	gCanvas->ToggleEventStatus();
 	gCanvas->Update(); 
-	gCanvas->AddExec("ex","RangeClicked()");
-	
-	// Reset the bining
-    gBining = 0 ; 
 }
 
 
@@ -275,6 +290,7 @@ void RebinHistogram() {
 //___________________________  29 Sep 2014, MHD : Must find a better solution 
 void WriteRebin() {
 	gPeaksFile << "Rebin " <<pow(2,gBining) << "\n" ;
+	cout << "Store binning " <<pow(2,gBining) << "\n" ;
 }
 
 //___________________________ 
@@ -283,33 +299,37 @@ void RangeClicked() {
 	TPad *pad = (TPad *) gCanvas->GetSelectedPad();
 	if (!pad) return;
 
-	int eventtype = pad->GetEvent();
+	int eventtype = pad->GetEvent(); 
+	
+	if ( pad->GetEvent() == 12 && !gMinimumIsSet && !gMaximumIsSet) {   //   kButton1Down   //kButton1Double=61    //middle button 1 click = 12
 
-	if (eventtype == 12 && !gMinimumIsSet ) {   //   kButton1Down   //kButton1Double=61    //middle button 1 click = 12
 		//Get the abscissa  
 		gMin = pad->GetEventX();
 		gMin = pad->AbsPixeltoX(gMin);
 		printf(" [ %.3f , \n",gMin);
-		gMinimumIsSet = true ; 
-		return ; // after return the below condition will be satisfied  
-		}
+		gMinimumIsSet = true ;
+		gMaximumIsSet = false ; 
+		return ; // after this return the condition of the block below will be satisfied  
+		} 
 		
-	if (eventtype == 12 && gMinimumIsSet) {
-		
+	if ( pad->GetEvent() == 12 && gMinimumIsSet && !gMaximumIsSet) {
+
 		//Get the abscissa  
 		gMax = pad->GetEventX();
 		gMax = pad->AbsPixeltoX(gMax);
 		
 		//print the values
-		if(gMin>gMax) {	cout << " WARNING : Min > Max , reset the range  \n" << endl ; return ; }
+		if(gMin>=gMax) {	cout << " WARNING : Min >= Max , "<< " choose a value > "<< gMin << " \n" << endl ; return ; }
 		else printf(" [ %.3f , %.3f ]\n",gMin,gMax);
 		
 		//reset 
 		gMinimumIsSet=false ;
+		gMaximumIsSet=false ;
 		return ; 
 		}
-	else return ;
 	
+	return ;
+
 }
 
 
