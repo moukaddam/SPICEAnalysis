@@ -126,7 +126,7 @@ int     GrabHistos(TString fname) ;
 
 
 // Main function
-void PeakSearch_207Bi_Simple(const char* fname = "his30093", const char* tag = "") {
+void PeakSearch_207Bi_Simple(const char* fname = "his30091", const char* tag = "") {
 
 	gStyle->SetPalette(1);
 	cout<<"Run : "<<fname<<endl;
@@ -229,8 +229,8 @@ void PeakSearch_207Bi_Simple(const char* fname = "his30093", const char* tag = "
    //ofstream cal_file;
    
 	//TString peaksfile_name = Form("SiLi_peaks_207Bi");
-	TString peaksfile_name = Form("peaks_detail.dat");
-	peaksfile_name = peaksfile_name + "_" + fname + tag; 
+	TString peaksfile_name = Form("peaks_detail");
+	peaksfile_name = peaksfile_name + "_" + fname + tag + ".dat"; 
 	peaks_file.open("./"+peaksfile_name);
 	//peaks_file<< "channel" << "\t" << "Address"<< "\t" << "ring"  <<"\t"<< "sector"  << "\t" << "Integral"  <<"\t"<< "mean"  <<"\t"<< "gain/ch" << "\t"<<"sigma" << "\t" <<"err"<<"\t"<<"chi2"<<endl ;
 
@@ -310,7 +310,7 @@ void PeakSearch_207Bi_Simple(const char* fname = "his30093", const char* tag = "
  
        // open the ROOT file to process
    TFile *inFile ; 
-   TString path ="/data1/moukaddam/SpiceTestSep2014/Calibration/Files/";
+   TString path ="/data2/evitts/SpiceTestSep2014/Midas/";
    TString extension =  ".root" ;
    TString inFileName = fname+extension;
    inFile = new TFile(path + inFileName);
@@ -377,69 +377,61 @@ int   ReadInput(TString input_fname) {
    
 	if (range_file.is_open()) {
 		success = 1 ; 
-	    cout << " File is opened..." << endl ;  
+	  cout << " File is opened..." << endl ;  
 		getline (range_file,dummy_string);
-		cout << dummy_string << endl ; 
-		getline (range_file,dummy_string);
-		cout << dummy_string << endl ; 
-		cout << range_file.eof() << endl ;
+		//cout << dummy_string << endl ; 
+		//cout << range_file.eof() << endl ;
  
 		while (true) {
+  		getline (range_file,dummy_string);
+  		cout << dummy_string << endl;
+	  	string indicator = dummy_string.substr(0, 1);// get the first letter 
+	  	istringstream ss(dummy_string);
 		
-		getline (range_file,dummy_string);
-		string indicator = dummy_string.substr(0, 1);// get the first letter 
-		istringstream ss(dummy_string);
+		  if (range_file.eof()) break;
 		
-		cout << indicator << endl ;
-		cin.get(); 
-		
-		if ( indicator == "#") {
-		ss>>dummy_word>>channel ; 
-		odb_channel =  channel - odb_offset ;
-		} 
-		else 
-			if ( indicator == "%") {
-			// this is a comment
-			}
-			else
-				if ( indicator == "R") {
-				int binning = 0  ; 
-				ss>>dummy_word>>binning ;
-				peaker[odb_channel].binning = binning ; 
-				}
-				else {
-						ss >> minimum >> maximum  >> energy ;
-						if (minimum!=-1 && maximum!=-1) { 
-						peaker[odb_channel].energy.push_back(energy); 		
-						peaker[odb_channel].minimum.push_back(minimum);
-						peaker[odb_channel].maximum.push_back(maximum);
-						}
-				}
-	    if (range_file.eof()) break ; 
-	    
+		  if ( indicator == "=")
+		    continue;
+	  	else if ( indicator == "#") {
+	  	  ss >> dummy_word >> channel ; 
+	  	  odb_channel =  channel - odb_offset ;
+	  	} else if ( indicator == "%") {
+	  		// this is a comment
+	  	}	else if ( indicator == "R") {
+        int binning = 0  ; 
+	  		ss>>dummy_word>>binning ;
+	  		peaker[odb_channel].binning = binning ; 
+	  	}	else {
+	  		ss >> minimum >> maximum  >> energy ;
+	  		if (minimum!=-1 && maximum!=-1) { 
+	  		  peaker[odb_channel].energy.push_back(energy); 		
+	  		  peaker[odb_channel].minimum.push_back(minimum);
+	  		  peaker[odb_channel].maximum.push_back(maximum);
+	  	  }
+	    }    
 		}
 		
 
-	}	   
-	else {
-	cout << "file not found ! will exit " << endl ; 
-	success = 0 ; 
+	}	else {
+	  cout << "file not found ! will exit " << endl ; 
+	  success = 0 ; 
 	}
 	
-	if (DEBUG) { cout << " Dump the content of peaker " << endl ; getchar();
+	if (DEBUG) { 
+	  cout << " Dump the content of peaker " << endl; getchar();
 		for ( odb_channel = 0 ; odb_channel < ODB_CHANNELS ; odb_channel++)	{
-				for (int j = 0 ; j < peaker[odb_channel].energy.size() ; j++) {
-			cout << odb_channel + odb_offset << "\t" ;
-			cout << peaker[odb_channel].energy.at(j) << "\t" ;
-			cout << peaker[odb_channel].minimum.at(j)<< "\t" ;
-			cout << peaker[odb_channel].maximum.at(j)<< "\n" ;
+			for (int j = 0 ; j < peaker[odb_channel].energy.size() ; j++) {
+			  cout << odb_channel + odb_offset << "\t" ;
+			  cout << peaker[odb_channel].energy.at(j) << "\t" ;
+			  cout << peaker[odb_channel].minimum.at(j)<< "\t" ;
+			  cout << peaker[odb_channel].maximum.at(j)<< "\n" ;
 			}
-			cout << "+++" << "\n" ;
+		  cout << "+++" << "\n" ;
 		}
-	  }
+	}
   
   return success ; 
- } 
+} 
 
 
 void SubtractBackground(int odb_channel) {
