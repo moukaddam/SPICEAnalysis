@@ -114,7 +114,7 @@ int     GrabHistos(TString path, TString fname) ;
 void 	SubtractBackground(int odb_channel);   
 
 // Main function
-void PeakSearch_207Bi_Simple(const char* input_path = "./../../Calibration/Files/",const char* input_file_name = "his30093",
+void PeakFit_Simple(const char* input_path = "./../../Calibration/Files/",const char* input_file_name = "his30093",
 							 const char* detail_peaks_fname = "peaks_file.dat") {
 
 	gStyle->SetPalette(1);
