@@ -347,13 +347,13 @@ if ( select == 1 ) {
 
 if ( select == 2 ) { 
 	gPhysQuantity="Cfd"; 
-	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosLed"));
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosCfd"));
 	return ;
 	}
 	
 if ( select == 3 ) { 
 	gPhysQuantity="Led"; 
-	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosCfd"));
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosLed"));
 	return ;
 	}
 	
