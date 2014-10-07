@@ -39,12 +39,16 @@ void CreateSiLiMap();
 void OpenDataFile();
 int  OpenDataThisFile(TString filename);
 void GetHistogram(int indicator);
+void PQSelector(int select );
 #define STOP Stop();
 
 //Global variables 
 TCanvas *gCanvas ;
-TCanvas *gCanvasHist ;	
+TCanvas *gCanvasHist ;
+TFile *gInFile;	
 TFolder *gFolderHistos ; 
+TString gPhysQuantity="Chrg";
+TH1F* gHist;
 
 
 //MAIN FUNCTION 
@@ -221,12 +225,10 @@ void SegmentClicked() {
         int binxy = h2poly->FindBin(x,y) ;
 		cout<< "bin content" <<h2poly->GetBinContent( binxy ) <<endl ;
 		
-		//Draw Histogram corresponding to mouse positionon the new Canvas	
-		
+		//Draw Histogram corresponding to mouse position the new Canvas			
 		GetHistogram( binxy ) ; 
 
-		//update canvas	
-		//gCanvas->Update();					
+		//update canvas				
 		gCanvasHist->Update();
 		//padsav->cd();
 		}
@@ -241,7 +243,7 @@ void SegmentClicked() {
  void OpenDataFile() {
  
  // add command asking for the name/path...
- TString fname = "his30093"; 
+ TString fname = "hisXXXXX"; 
  
  OpenDataThisFile(fname) ; 
  }
@@ -254,28 +256,29 @@ void SegmentClicked() {
  	//TString fname = "his30093" ; 
        // open the ROOT file to process
 
-   TString path ="/data1/moukaddam/SpiceTestSep2014/Calibration/Files/";
+   TString path ="./";
    TString extension =  ".root" ;
    TString inFileName = fname+extension;
-   TFile *inFile = new TFile(path + inFileName);
+   gInFile = new TFile(path + inFileName);
    
-   if ( ! inFile->IsOpen() )  { //try present directory
+   if ( ! gInFile->IsOpen() )  { //try present directory
    path ="./";
-   inFile->SetName(path + inFileName);
+   gInFile->SetName(path + inFileName);
    }
    else {
    success = 1 ;
    cout << "file is opened "<< endl; 
-    inFile->ls();   	
+    gInFile->ls();   	
    } 
 
 	   if (gDebug) { 
-	   cout << "Opening the root file and grabing histograms " << inFile->GetName() << endl ;  
-	   inFile->ls();
+	   cout << "Opening the root file and grabing histograms " << gInFile->GetName() << endl ;  
+	   gInFile->ls();
 	   getchar();
 	   }
 	   
-	 gFolderHistos = (TFolder*)(inFile->FindObjectAny("histos"));
+	 gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histos"));
+ 	 
 	 return success ;
    }  
    
@@ -301,32 +304,67 @@ void GetHistogram(int channel  ) {
 		gCanvasHist->cd();
 		
        
-	TString hname = Form("Chrg%d", channel+1060); 
-	TH1F* hist = (TH1F*)(gFolderHistos->FindObjectAny(hname));
+	TString hname = Form(gPhysQuantity+"%d", channel+1060); 
+	gHist = (TH1F*)(gFolderHistos->FindObjectAny(hname));
 	cout << "=========================================";
 	cout << " Retreiving Channel : " << channel ;
 	cout << " ========================================="<< endl;
 
 	//gCanvas->cd(1);
-	hist->GetXaxis()->SetRangeUser(0,3500);
-	hist->GetXaxis()->SetTitle("Energy (keV)");
-	hist->GetXaxis()->SetAxisColor(kRed);
-	hist->GetXaxis()->SetTickLength(-0.01);
+	gHist->GetXaxis()->SetRangeUser(0,3500);
+	gHist->GetXaxis()->SetTitle("Energy (keV)");
+	gHist->GetXaxis()->SetAxisColor(kRed);
+	gHist->GetXaxis()->SetTickLength(-0.01);
 	
-	hist->GetYaxis()->SetTitle("Counts ");
-	hist->GetYaxis()->SetAxisColor(kRed);
-	hist->GetYaxis()->SetTickLength(-0.01);
+	gHist->GetYaxis()->SetTitle("Counts ");
+	gHist->GetYaxis()->SetAxisColor(kRed);
+	gHist->GetYaxis()->SetTickLength(-0.01);
 	
-	hist->SetLineColor(kYellow);
+	gHist->SetLineColor(kYellow);
 	
 	//Draw on the other Canvas
 	gCanvasHist->cd() ;
-	hist->Draw(); 
+	gHist->Draw(); 
 	
 	gCanvasHist->ToggleEventStatus();
 	gCanvasHist->Update(); 
 }
  
+
+void PQSelector(int select ) {
+
+if ( select == 0 ) {
+	gPhysQuantity="Chrg"; 
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histos"));
+	return ;
+	}
+	
+if ( select == 1 ) { 
+	gPhysQuantity="ChrgCal"; 
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosCal"));
+	return ;
+	}
+
+if ( select == 2 ) { 
+	gPhysQuantity="Cfd"; 
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosLed"));
+	return ;
+	}
+	
+if ( select == 3 ) { 
+	gPhysQuantity="Led"; 
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosCfd"));
+	return ;
+	}
+	
+if ( select == 4 ) { 
+	gPhysQuantity="Time"; 
+	gFolderHistos = (TFolder*)(gInFile->FindObjectAny("histosTime"));
+	return ;
+	}
+	
+}
+
 
 void Stop() {
 	char c; 
