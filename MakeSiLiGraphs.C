@@ -118,10 +118,9 @@ void MakeSiLiGraphs() {
 
 	c1->cd();
 	mg->Draw("a");    
-   mg->Write(); 
+    mg->Write(); 
 	file->Write(); 
 }
-  //c1->AddExec("ex","TriangleClicked()");
 
 
 
@@ -149,7 +148,7 @@ TGraph* RotateGraph(TGraph* g, float angle ) { // radian
 	}
 
 	TGraph* gg = new TGraph(n,xx,yy) ; 
-	gg->SetLineColor(2);
+	gg->SetLineColor(2); // Blue Green Red and White/Black are the color that should be assigned to the borders 
 	gg->SetLineWidth(2);
 	gg->SetMarkerColor(4);
 	gg->SetMarkerStyle(1);

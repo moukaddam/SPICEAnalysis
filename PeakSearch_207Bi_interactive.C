@@ -77,13 +77,13 @@ void PeakSearch_207Bi_interactive() {
  	PrintFunctionList();
 
 // Get control bar, one can make different control bar for different Nucleus
- 	GetControlBar(/*nucleus*/);
+ 	GetControlBar(/*gNucleus*/);
 
 // Open data file 	
 	OpenDataFile();
 	
 // Open peaks output file 
-    OpenPeaksFile() ; 
+    OpenPeaksFile(); 
 	
 }
 
@@ -113,8 +113,8 @@ cout << " List of functions :"<<endl
  void OpenDataFile() {
  
  // add command asking for the name/path...
- TString fname = "his30093"; 
- 
+ //TString fname = "his30093"; 
+  TString fname = "hisXXXXX"; //default
  OpenDataThisFile(fname) ; 
  }
  
@@ -122,32 +122,31 @@ cout << " List of functions :"<<endl
  int OpenDataThisFile(TString fname ) {
  
  	int success = 0 ;
- 	
- 	//TString fname = "his30093" ; 
-       // open the ROOT file to process
 
-   TString path ="/data1/moukaddam/SpiceTestSep2014/Calibration/Files/";
-   TString extension =  ".root" ;
-   TString inFileName = fname+extension;
+       // open the ROOT file to process
+   TString path ="./data1/moukaddam/SpiceTestSep2014/Calibration/Files/";
+   TString inFileName = fname+".root";
    TFile *inFile = new TFile(path + inFileName);
    
-   if ( ! inFile->IsOpen() )  { //try present directory
+   if ( !inFile->IsOpen() )  { //try present directory
+   cout << "File doesn't exist in the directory  : " << path << endl ; 
+   cout << "Trying the present working directory : ./" << endl ; 
    path ="./";
-   inFile->SetName(path + inFileName);
+   inFile = new TFile(path + inFileName);
+   }
+   
+   if ( inFile->IsOpen() ) {
+       success = 1 ;
+   	   cout << "Opening the root file and grabing the histograms from " << inFile->GetName() << endl ; 
+   	   inFile->ls(); 
    }
    else {
-   success = 1 ;
-   cout << "file is opened "<< endl; 
-    inFile->ls();   	
+   cout << "File is not found.. EXIT!"<< endl;
+   exit(-1);
    } 
-
-	   if (gDebug) { 
-	   cout << "Opening the root file and grabing histograms " << inFile->GetName() << endl ;  
-	   inFile->ls();
-	   getchar();
-	   }
 	   
 	 gFolderHistos = (TFolder*)(inFile->FindObjectAny("histos"));
+	 
 	 return success ;
    }  
    
@@ -228,6 +227,8 @@ void GetNextHistogram(int a ) {
 		gCanvas = new TCanvas(title,title, 1200,700);
 		gCanvas->SetCrosshair(2);
 		gCanvas->SetFrameFillColor(kBlack);
+		gCanvas->SetFillColor(kBlack);
+		gCanvas->ToggleEventStatus();
 		gCanvas->AddExec("ex","RangeClicked()");
 		//gCanvas->Divide(1,3) ; 
 	}
@@ -258,17 +259,20 @@ void GetNextHistogram(int a ) {
 	//gCanvas->cd(1);
 	gHist_current->GetXaxis()->SetRangeUser(0,3500);
 	gHist_current->GetXaxis()->SetTitle("Energy (keV)");
-	gHist_current->GetXaxis()->SetAxisColor(kRed);
 	gHist_current->GetXaxis()->SetTickLength(-0.01);
-	
+	gHist_current->GetXaxis()->SetTitleColor(kRed);
+	gHist_current->GetXaxis()->SetAxisColor(kRed);
+	gHist_current->GetXaxis()->SetLabelColor(kRed);
+		
 	gHist_current->GetYaxis()->SetTitle("Counts ");
-	gHist_current->GetYaxis()->SetAxisColor(kRed);
 	gHist_current->GetYaxis()->SetTickLength(-0.01);
-	
+	gHist_current->GetYaxis()->SetAxisColor(kRed);
+	gHist_current->GetYaxis()->SetTitleColor(kRed);
+	gHist_current->GetYaxis()->SetLabelColor(kRed);
+		
 	gHist_current->SetLineColor(kYellow);
 	gHist_current->Draw(); 
 	
-	gCanvas->ToggleEventStatus();
 	gCanvas->Update(); 
 }
 
@@ -370,54 +374,4 @@ void Close() {
 gPeaksFile.close(); 
 exit(-1); 
 }
-
-
-
-
-/*
-
-//_______________________________________
- int OpenDataFile() {
- 
-int success = 0 ; 
-const char* fname_c = "";
-TFile *inFile = new TFile() ; 
-TString path ="/data1/moukaddam/SpiceTestSep2014/Calibration/Files/";
-TString extension =  ".root" ;
-
-cout << " Hello " << endl ; 
-
- while ( success == 0 ) {
-		 cout << "Provide file name  : " <<endl ; 
-		 cin >> fname_c ;
-		 TString fname(fname_c) ; 
-		 cout << " Reading folder : " << fname << " ."<<endl  ;
-		  
-		 if (fname == "") fname == "his30093" ;
-		 
-		   // open the ROOT file to process
-		   //inFile = new TFile(path + fname + extension);
-		   //inFile->SetName(path + fname + extension);
-		   	inFile->Open(path + fname + extension);
-		   if ( ! inFile->IsOpen() )  { //try a new directory
-		   cout << "File " << inFile->GetName() << "NOT FOUND! " << endl ;  
-		   //path ="/data1/moukaddam/SpiceTestSep2014/GSpoonPhysicsTrees/";
-		   //inFile->SetName(path + fname + extension);
-		   //inFile->Open(path + fname + extension);
-		   }
-		   else success = 1 ; 
-		};
-	
-	   if (gDebug) { 
-	   cout << "Opening the root file and grabing histograms " << inFile->GetName() << endl ;  
-	   inFile->ls();
-	   getchar();
-	   }
-	   
-	 gFolderHistos = (TFolder*)(inFile->FindObjectAny("histos"));
-	 
-	 return success ;
-   }  */
-
-
 
