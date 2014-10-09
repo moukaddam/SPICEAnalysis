@@ -34,20 +34,6 @@ using namespace std ;
 #include "TVector2.h"
 
 
-// functions 
-void Stop();
-void SegmentClicked();
-void CreateSiLiDynamicMap();
-void OpenDataFile();
-int  OpenDataThisFile(TString filename);
-void GetHistogram(int indicator);
-void PQSelector(int select );
-void ReadSiLiMap(TString CsvFileName);
-
-//Definitions 
-#define DEBUG 0
-#define STOP Stop();
-
 //Global variables 
 TCanvas *gCanvas ;
 TCanvas *gCanvasHist ;
@@ -56,10 +42,7 @@ TFolder *gFolderHistos ;
 TString gPhysQuantity="Chrg";
 TH1F* gHist_current;
 TH2Poly* gH2Poly ;
-
-
 struct map_element_st {
-
 	TString Mnemonic; // Mnemonic of the segment, refer to TigWiki  https://www.triumf.info/wiki/tigwiki/index.php/Detector_Nomenclature 
 	int Sector; // 0-11 Number of sector as provided by Semikon
 	int Ring; // 0-9 Number of ring as provided by Semikon
@@ -83,8 +66,27 @@ struct map_element_st {
 	int ReversedRingx12plusSector; // Number 000-119 (Reversed ring * 12) + sector, this formula is used to assign the mnemonic as described in the tigwiki 	
 	int ReversedRing ; // Reversed ring	9-ring, used in constructing the ReversedRingx12plusSector parameter
 	int Ringx12plusSector; // Number 000-119 (ring * 12) + sector	
-
 };
+map<TString,map_element_st> gMap;
+
+// functions 
+void Stop();
+void SegmentClicked();
+void CreateSiLiDynamicMap();
+void OpenDataFile();
+int  OpenDataThisFile(TString filename);
+void GetHistogram(int indicator);
+void PQSelector(int select );
+void ReadSiLiMap(TString CsvFileName);
+void PrintInfo(const char* SegmentID) ; 
+	
+//Definitions 
+#define DEBUG 0
+#define STOP Stop();
+
+
+
+
 
 
 //MAIN FUNCTION 
@@ -109,8 +111,6 @@ void ReadSiLiMap(TString CsvFileName ){
 // This file is exported from a spread sheet of the SiLi Map.
 
 	TString path ="/data1/moukaddam/SpiceTestSep2014/DetectorMapping/";
-
-	 map<TString,map_element_st> gMap;
 	 map<TString,map_element_st>::iterator it;
 
 	int success = 1 ;
@@ -259,7 +259,7 @@ void CreateSiLiDynamicMap(){
 		}
 	
 //Create The h2 poly graph 
-	gH2Poly = new TH2Poly("SiLi","SiLi (something in title...)",-20,+20,-20,+20);
+	gH2Poly = new TH2Poly("SiLi","SPICE Si(Li) << Looking Up-Stream >> ",-20,+20,-20,+20);
    //gH2Poly->GetXaxis()->SetNdivisions(520);
    gH2Poly->GetXaxis()->SetTitle("X");
    gH2Poly->GetYaxis()->SetTitle("Y");
@@ -358,17 +358,18 @@ void SegmentClicked() {
 
 	//this action function is called whenever you middle click on the mouse
 		if (event == 12) {
-		 // Get the sector and the ring 
-		//GetRing(x,y) ;  
-		//GetSector(x,y) ;
-		//it prints the informations of the segments 
 		cout<< "x and y :" <<x << "\t"<< y <<endl ;
 		cout<< "bin #" <<gH2Poly->FindBin(x,y) <<endl ;
         int binxy = gH2Poly->FindBin(x,y) ;
-		cout<< "bin content" <<gH2Poly->GetBinContent( binxy ) <<endl ;
+		//cout<< "bin content" <<gH2Poly->GetBinContent( binxy ) <<endl ;
 		
-		//Draw Histogram corresponding to mouse position the new Canvas			
-		GetHistogram( binxy ) ; 
+		//Draw Histogram corresponding to mouse position the new Canvas
+		int channel = gMap[gH2Poly->GetBinTitle(binxy)].ChannelNumberFromOdb ; 
+		GetHistogram( channel ) ; 
+		
+		//Print the info of the selected segment on the screen
+		PrintInfo( gH2Poly->GetBinTitle(binxy) ) ; 
+
 
 		//update canvas				
 		gCanvasHist->Update();
@@ -378,6 +379,42 @@ void SegmentClicked() {
 		return ;
 
 }
+
+
+void  PrintInfo(const char* segment){
+ 
+	cout << "===================================================================================="<< endl; 	     
+	cout << "Semikon Segment ID :  " << gMap[segment].SegIDSemikon   << endl; 
+	cout << "------------------------------------------------------------------ F E T - B O A R D"<< endl; 	     
+	cout << "SemikonPCBconnector\t\t" << 		  gMap[segment].SemikonPCBconnector << endl;	  
+	cout << "FETBoardSlot\t\t\t" <<   			  gMap[segment].FETBoardSlot << endl; 
+	cout << "---------------------------------------------------------------------- P R E A M P S"<< endl; 	     
+	cout << "PreampAbsolutePosition\t\t" << 	  gMap[segment].PreampAbsolutePosition	  << endl; 
+	cout << "PreampPin\t\t\t" << 				  gMap[segment].PreampPin  	  << endl; 
+	cout << "--------------------------------------------------------- T I G R E S S - C A B L E S"<< endl; 	   
+	cout << "CloverCable\t\t\t" << 				  gMap[segment].CloverCable	<< endl;   
+	cout << "CloverNumber\t\t\t" << 			  gMap[segment].CloverNumber << endl;
+	cout << "TIG10Cable\t\t\t" << 				  gMap[segment].TIG10Cable 	  << endl; 
+	cout << "----------------------------------------------------- S P A C I A L - P O S I T I O N"<< endl; 
+	cout << "Sector\t\t\t\t" << 				  gMap[segment].Sector	<< endl;   
+	cout << "Ring\t\t\t\t" << 					  gMap[segment].Ring << endl; 
+	cout << "Theta\t\t\t\t" <<  				  gMap[segment].Theta	  << endl; 
+	cout << "Phi\t\t\t\t" << 					  gMap[segment].Phi << endl;
+	cout << "RadiusMidArea\t\t\t" <<  			  gMap[segment].RadiusMidArea	  << endl; 
+	cout << "------------------------------------------------------------------- T I G 1 0 - D A Q"<< endl; 
+	cout << "CollectorNumber\t\t\t" << 			  gMap[segment].CollectorNumber	  << endl; 
+	//cout << "TIG10PortNumberOnCollector\t"  <<  gMap[segment].TIG10PortNumberOnCollector    << endl; 
+	cout << "TIG10PortNumberOnCollectorHEXA\t"<<  gMap[segment].TIG10PortNumberOnCollectorHEXA << endl; 	  
+	cout << "TIG10PlugNumber\t\t\t" << 			  gMap[segment].TIG10PlugNumber	  << endl;
+	cout << "ChannelNumberFromOdb\t\t" << 		  gMap[segment].ChannelNumberFromOdb << endl;
+	cout << "FSCP\t\t\t\t" << 					  gMap[segment].FSCP	<< endl;
+	cout << "Mnemonic\t\t\t" << 				  gMap[segment].Mnemonic	 << endl;
+	cout << "====================================================================================="<< endl; 	  
+	//cout << "ReversedRingx12plusSector\t\t\t" << 	 gMap[segment].ReversedRingx12plusSector	<< endl; 	  
+	//cout << "ReversedRing\t\t\t" << 				 gMap[segment].ReversedRing << endl; 
+	//cout << "Ringx12plusSector\t\t\t" << 			 gMap[segment].Ringx12plusSector  	<< endl;   
+ 
+ }
 
 
 //_______________________________________
@@ -425,7 +462,7 @@ void SegmentClicked() {
    
   
   //___________________________
-void GetHistogram(int channel  ) {
+void GetHistogram(int channel) {
 
 //make sure file is opened 
 	if (!gFolderHistos) {
@@ -447,12 +484,9 @@ void GetHistogram(int channel  ) {
 	}
 	
        
-	TString hname = Form(gPhysQuantity+"%d", channel+1060); 
+	TString hname = Form(gPhysQuantity+"%d", channel); 
 	gHist_current = (TH1F*)(gFolderHistos->FindObjectAny(hname));
-	cout << "=========================================";
-	cout << " Retreiving Channel : " << channel ;
-	cout << " ========================================="<< endl;
-
+	cout << "==========================================================Retreiving Channel : " << channel << endl ;     
 	//gCanvas->cd(1);
 	
 	gHist_current->GetXaxis()->SetRangeUser(0,3500);
