@@ -43,6 +43,9 @@ int  OpenDataThisFile(TString filename);
 void GetHistogram(int indicator);
 void PQSelector(int select );
 void ReadSiLiMap(TString CsvFileName);
+
+//Definitions 
+#define DEBUG 0
 #define STOP Stop();
 
 //Global variables 
@@ -111,10 +114,10 @@ void ReadSiLiMap(TString CsvFileName ){
 	 map<TString,map_element_st>::iterator it;
 
 	int success = 1 ;
-	int nb_columns = 23 ;
-	string dummy_string="";
-	string dummy_word[nb_columns]; // Number of columns 
-	string dummy_value[nb_columns]; 
+	int nb_columns = 30 ;
+	string buffer_string="";
+	string buffer_word[nb_columns]; // Number of columns 
+	string buffer_value[nb_columns]; 
 
 	ifstream csv_file ; 
 	csv_file.open((path + CsvFileName).Data()) ; 
@@ -135,76 +138,85 @@ void ReadSiLiMap(TString CsvFileName ){
 	} 
 
 	//Read the titles, they will be used as indicators to fill the map 
-	getline (csv_file,dummy_string);
-	cout << dummy_string <<" "<< endl;
-	istringstream ss(dummy_string);
+	getline (csv_file,buffer_string);
+	cout << buffer_string <<" "<< endl;
+	istringstream ss(buffer_string);
 
 	int anchor=-1;
 	TString key_title = "SegIDSemikon" ; 
 	
 	for (int i=0 ; i < nb_columns ; i++){
-		ss>>dummy_word[i];
-		cout << " "<< dummy_word[i] <<endl;
-		if( dummy_word[i] == key_title ){
-			cout << " The map will be organised according to parameter "<< key_title <<endl;
+		ss>>buffer_word[i];
+		cout << " "<< buffer_word[i] ;
+		if( buffer_word[i] == key_title ){
+			cout << " <<<<<< The map will be organised according to this parameter ";
 			anchor = i ; 
 			}
-	}
+			cout << endl ; 
+		}
 	
 	// in case the title is not found 
 	if (anchor == -1 ) {
-	key_title = dummy_word[0]; 
+	key_title = buffer_word[0]; 
 	cout << " Default : The map will be organised according to parameter "<< key_title <<endl;
 	anchor == 0 ; 
 	}
+	
+	cout<< "anchor : " << anchor << endl ; 
+	getchar(); 
 
 	
 	while (true) {
 
-			getline (csv_file,dummy_string);
-			cout << " Reading : "<<dummy_string << endl;
-	 		istringstream ss(dummy_string);
+            getline (csv_file,buffer_string);
+			cout << "\nReading : "<<buffer_string << endl;
+	 		istringstream ss(buffer_string);
 	 		
+	 		//if end of file break 
 			if (csv_file.eof()) break;
-	
+           
+           //read all the values 	
 			for (int i=0 ; i < nb_columns ; i++){
-				ss>>dummy_value[i];
-				cout<< " "<<dummy_value[i]<<endl ;
-				if ( dummy_word[i] == "Mnemonic")  						gMap[dummy_value[anchor]].Mnemonic		        = dummy_value[i];
-				if ( dummy_word[i] == "Sector")  						gMap[dummy_value[anchor]].Sector 		        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "Ring")  							gMap[dummy_value[anchor]].Ring 			        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "SegIDSemikon")  						gMap[dummy_value[anchor]].SegIDSemikon	 	        = dummy_value[i];
-				if ( dummy_word[i] == "SemikonPCBconnector")  					gMap[dummy_value[anchor]].SemikonPCBconnector	        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "FETBoardSlot")  						gMap[dummy_value[anchor]].FETBoardSlot	     	        = dummy_value[i];
-				if ( dummy_word[i] == "PreampAbsolutePosition")  				gMap[dummy_value[anchor]].PreampAbsolutePosition         = dummy_value[i];
-				if ( dummy_word[i] == "PreampPin")  						gMap[dummy_value[anchor]].PreampPin		        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "CloverCable")  						gMap[dummy_value[anchor]].CloverCable		        = dummy_value[i];
-				if ( dummy_word[i] == "CloverNumber")  						gMap[dummy_value[anchor]].CloverNumber		        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "TIG10Cable")  						gMap[dummy_value[anchor]].TIG10Cable		        = dummy_value[i];
-				if ( dummy_word[i] == "CollectorNumber")  					gMap[dummy_value[anchor]].CollectorNumber	        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "TIG10PortNumberOnCollector")  				gMap[dummy_value[anchor]].TIG10PortNumberOnCollector     = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "TIG10PortNumberOnCollectorHEXA")  			gMap[dummy_value[anchor]].TIG10PortNumberOnCollectorHEXA = dummy_value[i];
-				if ( dummy_word[i] == "TIG10PlugNumber")  					gMap[dummy_value[anchor]].TIG10PlugNumber	        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "FSCP") 				 			gMap[dummy_value[anchor]].FSCP			        = dummy_value[i];
-				if ( dummy_word[i] == "ChannelNumberFromOdb")  					gMap[dummy_value[anchor]].ChannelNumberFromOdb	        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "RadiusMidArea")  					gMap[dummy_value[anchor]].RadiusMidArea		        = atof( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "Theta")  						gMap[dummy_value[anchor]].Theta			        = atof( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "Phi")  							gMap[dummy_value[anchor]].Phi			        = atof( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "ReversedRingx12plusSector")  				gMap[dummy_value[anchor]].ReversedRingx12plusSector      = atoi( (dummy_value[i]).c_str() );																      
-				if ( dummy_word[i] == "ReversedRing")  						gMap[dummy_value[anchor]].ReversedRing		        = atoi( (dummy_value[i]).c_str() );
-				if ( dummy_word[i] == "Ringx12plusSector")  					gMap[dummy_value[anchor]].Ringx12plusSector	        = atoi( (dummy_value[i]).c_str() );     
+				ss>>buffer_value[i];
+				}
+			//Fill all the values in the right slot 	
+			for (int i=0 ; i < nb_columns ; i++){
+				buffer_value[i];
+				cout<< " * "<< buffer_value[anchor] << "/"<< buffer_value[i]<<" " ;
+				if ( buffer_word[i] == "Mnemonic")  						gMap[buffer_value[anchor]].Mnemonic		        			= buffer_value[i];
+				if ( buffer_word[i] == "Sector")  						gMap[buffer_value[anchor]].Sector 		       		 		= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "Ring")  							gMap[buffer_value[anchor]].Ring 			        			= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "SegIDSemikon")  					gMap[buffer_value[anchor]].SegIDSemikon	 	       		 	= buffer_value[i];
+				if ( buffer_word[i] == "SemikonPCBconnector")  			gMap[buffer_value[anchor]].SemikonPCBconnector	        	= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "FETBoardSlot")  					gMap[buffer_value[anchor]].FETBoardSlot	     	        	= buffer_value[i];
+				if ( buffer_word[i] == "PreampAbsolutePosition")  		gMap[buffer_value[anchor]].PreampAbsolutePosition         	= buffer_value[i];
+				if ( buffer_word[i] == "PreampPin")  					gMap[buffer_value[anchor]].PreampPin		        			= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "CloverCable")  					gMap[buffer_value[anchor]].CloverCable		        		= buffer_value[i];
+				if ( buffer_word[i] == "CloverNumber")  					gMap[buffer_value[anchor]].CloverNumber		        		= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "TIG10Cable")  					gMap[buffer_value[anchor]].TIG10Cable		        		= buffer_value[i];
+				if ( buffer_word[i] == "CollectorNumber")  				gMap[buffer_value[anchor]].CollectorNumber	        		= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "TIG10PortNumberOnCollector")  	gMap[buffer_value[anchor]].TIG10PortNumberOnCollector     	= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "TIG10PortNumberOnCollectorHEXA") gMap[buffer_value[anchor]].TIG10PortNumberOnCollectorHEXA 	= buffer_value[i];
+				if ( buffer_word[i] == "TIG10PlugNumber")  				gMap[buffer_value[anchor]].TIG10PlugNumber	        		= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "FSCP") 				 			gMap[buffer_value[anchor]].FSCP			        			= buffer_value[i];
+				if ( buffer_word[i] == "ChannelNumberFromOdb")  			gMap[buffer_value[anchor]].ChannelNumberFromOdb	        	= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "RadiusMidArea")  				gMap[buffer_value[anchor]].RadiusMidArea		        		= atof( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "Theta")  						gMap[buffer_value[anchor]].Theta			        			= atof( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "Phi")  							gMap[buffer_value[anchor]].Phi			        			= atof( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "ReversedRingx12plusSector")  	gMap[buffer_value[anchor]].ReversedRingx12plusSector      	= atoi( (buffer_value[i]).c_str() );																      
+				if ( buffer_word[i] == "ReversedRing")  					gMap[buffer_value[anchor]].ReversedRing		        		= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "Ringx12plusSector")  			gMap[buffer_value[anchor]].Ringx12plusSector	        		= atoi( (buffer_value[i]).c_str() );     
+			//STOP
 			}
 		
 	}
 
 	
-	if (1) { 
+	if (DEBUG) { 
 	  cout << " Dump the content of the map " << endl; 
 	  getchar();
 	  
 	  for (it=gMap.begin(); it!=gMap.end(); it++) {
-	  
- 
 	      cout << it->first << " => " << it->second.Mnemonic << '\n';
 	      cout << it->first << " => " << it->second.Sector << '\n';
 	      cout << it->first << " => " << it->second.Ring << '\n';
@@ -228,7 +240,6 @@ void ReadSiLiMap(TString CsvFileName ){
 	      cout << it->first << " => " << it->second.ReversedRingx12plusSector << '\n';
 	      cout << it->first << " => " << it->second.ReversedRing << '\n';
 	      cout << it->first << " => " << it->second.Ringx12plusSector << '\n';
-          STOP
 	  }
 
 	
@@ -364,7 +375,6 @@ void SegmentClicked() {
 		//padsav->cd();
 		}
 
-
 		return ;
 
 }
@@ -424,20 +434,8 @@ void GetHistogram(int channel  ) {
 	}
 	
 
-	//create or set the new canvas gCanvasHist
-		//TVirtualPad *padsav = gPad;
-		/*gCanvasHist = (TCanvas*)gROOT->GetListOfCanvases()->FindObject("gCanvasHist");
-		if(gCanvasHist) delete gCanvasHist->GetPrimitive("Projection"); // Delete the (primitive) subpad of the object named "Projection" 
-		else   gCanvasHist = new TCanvas("gCanvasHist","Projection Canvas",710,10,700,700);
-		//gCanvasHist->SetGrid();
-		gCanvasHist->SetFrameFillColor(kBlack);
-		gCanvasHist->SetCrosshair(2);
-		gCanvasHist->cd();
-		gCanvasHist->ToggleEventStatus();
-		*/
-		
+	//create or set the new canvas gCanvasHist		
 		if(!gCanvasHist) {
-		//gCanvasHist->Delete();
 		TString title = "Bi207" ;
 		gCanvasHist = new TCanvas("gCanvasHist","Selected",710,10,700,700);
 		gCanvasHist->SetCrosshair(2);
