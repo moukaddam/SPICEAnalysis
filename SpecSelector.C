@@ -35,6 +35,18 @@ using namespace std ;
 
 
 //Global variables 
+
+//Detector parameters
+	int rings_number = 10 ; //10
+	float rad_start = 8 ;
+	float rad_end = 47 ; 
+	float rad_pitch = (rad_end-rad_start)/rings_number ;
+
+	int sectors_number = 12 ; //12      
+	float phi_start = 0*TMath::DegToRad(); ;
+	float phi_end = 360*TMath::DegToRad(); ; 
+	float phi_pitch = ((phi_end-phi_start)/sectors_number); // 30 degrees
+	
 TCanvas *gCanvas ;
 TCanvas *gCanvasHist ;
 TFile *gInFile;	
@@ -48,6 +60,7 @@ struct map_element_st {
 	int Ring; // 0-9 Number of ring as provided by Semikon
 	TString SegIDSemikon; // Segment ID as provided by semikon map : SxRy (sector x, Ring y)  
 	int SemikonPCBconnector; // Number 1-4 describing the position of the channel in one of the 4 groups on the PCB 
+	int SemikonPCBpin; // Number 1-30 describing the position of the pin on the PCB, useful to investigate cross talk 
 	TString FETBoardSlot; // Number 1-8 describing the position of the channel in one of the 8 slots on the vertical Copper plate 
 	TString PreampAbsolutePosition; // Two letters describing the position of the premaps (Left/North or Right/South) and the assigned colour (Blue/Green/Red/White) : LR	
 	int PreampPin; // Number 01-15 describing premap board pin number 	
@@ -79,33 +92,40 @@ void GetHistogram(int indicator);
 void PQSelector(int select );
 void ReadSiLiMap(TString CsvFileName);
 void PrintInfo(const char* SegmentID) ; 
-	
+TGraph* RotateGraph(TGraph* g, float angle ) ;
+void MakeSiLiGraphs(); 
+
 //Definitions 
 #define DEBUG 0
 #define STOP Stop();
-
-
-
+// NODES should always be of form n+2+1 where:
+// n is the number of jumps from point(node) to point(node)m this number is always even, 
+// n+2 is the number of nodes
+// n+2+1 the additional point correspond to the final point superimposed on the starting point(node) 
+#define NODES 8+3   
 
 
 
 //MAIN FUNCTION 
 void SpecSelector() {
-
 //Global settings
    gStyle->SetOptStat(0000);
    gStyle->SetPalette(1);   
 
+// Set the Mapping parameters, basically it will be an ascii file (in case the mapping is right during the experiment, this can be done through the mnemonics.	
+	ReadSiLiMap("spicepreampmap_20141009.csv");
+	
+//Make the graphs of the SiLi 
+	//MakeSiLiGraphs(); 
+
 //Open File for the histigram selection 
 	OpenDataFile();
-	
-// Set the Mapping parameters, basically it will be an ascii file (in case the mapping is right during the experiment, this can be done through the mnemonics.	
-	ReadSiLiMap("spicepreampmap_20141006.csv");
-	
+
 //Create the main map used by the user	
 	CreateSiLiDynamicMap();
-
 }
+
+
 
 void ReadSiLiMap(TString CsvFileName ){
 // This file is exported from a spread sheet of the SiLi Map.
@@ -188,6 +208,7 @@ void ReadSiLiMap(TString CsvFileName ){
 				if ( buffer_word[i] == "Ring")  							gMap[buffer_value[anchor]].Ring 			        			= atoi( (buffer_value[i]).c_str() );
 				if ( buffer_word[i] == "SegIDSemikon")  					gMap[buffer_value[anchor]].SegIDSemikon	 	       		 	= buffer_value[i];
 				if ( buffer_word[i] == "SemikonPCBconnector")  			gMap[buffer_value[anchor]].SemikonPCBconnector	        	= atoi( (buffer_value[i]).c_str() );
+				if ( buffer_word[i] == "SemikonPCBpin")  			gMap[buffer_value[anchor]].SemikonPCBpin	        	= atoi( (buffer_value[i]).c_str() );
 				if ( buffer_word[i] == "FETBoardSlot")  					gMap[buffer_value[anchor]].FETBoardSlot	     	        	= buffer_value[i];
 				if ( buffer_word[i] == "PreampAbsolutePosition")  		gMap[buffer_value[anchor]].PreampAbsolutePosition         	= buffer_value[i];
 				if ( buffer_word[i] == "PreampPin")  					gMap[buffer_value[anchor]].PreampPin		        			= atoi( (buffer_value[i]).c_str() );
@@ -222,6 +243,7 @@ void ReadSiLiMap(TString CsvFileName ){
 	      cout << it->first << " => " << it->second.Ring << '\n';
 	      cout << it->first << " => " << it->second.SegIDSemikon << '\n';	      
 	      cout << it->first << " => " << it->second.SemikonPCBconnector << '\n';
+	      cout << it->first << " => " << it->second.SemikonPCBpin << '\n';
 	      cout << it->first << " => " << it->second.FETBoardSlot << '\n';	       
 	      cout << it->first << " => " << it->second.PreampAbsolutePosition << '\n';
 	      cout << it->first << " => " << it->second.PreampPin << '\n';
@@ -253,13 +275,13 @@ void CreateSiLiDynamicMap(){
 
 	if(!gCanvas) {
 		TString title = "Bi207" ;
-		gCanvas = new TCanvas("SiLi_Segments","SiLi_Segments",10,10,700,700);
+		gCanvas = new TCanvas("SiLiDynamicMap","SiLiDynamicMap",10,10,700,700);
 		gCanvas->ToggleEventStatus();
 		gCanvas->AddExec("ex","SegmentClicked()");
 		}
 	
 //Create The h2 poly graph 
-	gH2Poly = new TH2Poly("SiLi","SPICE Si(Li) << Looking Up-Stream >> ",-20,+20,-20,+20);
+	gH2Poly = new TH2Poly("SiLi","SPICE Si(Li) << Looking Up-Stream >> ",-50,+50,-50,+50);
    //gH2Poly->GetXaxis()->SetNdivisions(520);
    gH2Poly->GetXaxis()->SetTitle("X");
    gH2Poly->GetYaxis()->SetTitle("Y");
@@ -288,8 +310,8 @@ void CreateSiLiDynamicMap(){
    TRandom3 r;
    //gBenchmark->Start("Filling");
    for (int i=0; i<10000; i++) {
-      float x = r.Uniform(-15,+15);
-      float y  = r.Uniform(-15,+15);
+      float x = r.Uniform(-50,+50);
+      float y  = r.Uniform(-50,+50);
       gH2Poly->Fill(x,y);
    }
   //gBenchmark->Show("Filling");
@@ -320,28 +342,50 @@ void SegmentClicked() {
 
 	if (event == 51) 
 		{
-//Detector parameters
-		float InnerRadius = 5 ; 
-		float OuterRadius = 15 ; 
-		int   NumberOfRings = 10 ; 		
+	
 
 		float theta = TMath::ATan(y/x) * TMath::RadToDeg(); // in Radians 
-		if (x < 0 ) theta = theta + 180 ;  
-		float angle1 = theta-(15);
-		float angle2 = angle1+(30);
+		if (x < 0 ) theta = theta + 180 ;
+		
+		int angle1 = (int)theta - (int)theta % 30; 
+		int angle2 = angle1+(30);
 
-		TEllipse  *lsector = new TEllipse(0,0,OuterRadius,0,angle1,angle2);
+  /*
+    //Get the color of premap 
+    TString segment = g->GetName();
+    TString PreampPosition = gMap[segment].PreampAbsolutePosition;
+    int color = kBlack ;  
+  if (PreampPosition == "LR" || PreampPosition == "RR"  ) color = kRed; 
+    else if (PreampPosition == "LW" || PreampPosition == "RW"  ) color = kBlack;
+        else if (PreampPosition == "LG" || PreampPosition == "RG"  ) color = kGreen+2;
+            else if (PreampPosition == "LB" || PreampPosition == "RB"  ) color = kBlue;  
+      */
+
+    //Get the color of premap 
+	int binxy = gH2Poly->FindBin(x,y) ;
+	TString PreampPosition = gMap[gH2Poly->GetBinTitle(binxy)].PreampAbsolutePosition;
+    int color = kWhite ;  
+	  if (PreampPosition == "LR" || PreampPosition == "RR"  ) color = kRed; 
+		else if (PreampPosition == "LW" || PreampPosition == "RW"  ) color = kBlack;
+		    else if (PreampPosition == "LG" || PreampPosition == "RG"  ) color = kGreen+2;
+		        else if (PreampPosition == "LB" || PreampPosition == "RB"  ) color = kBlue;  
+      
+   
+		TEllipse  *lsector = new TEllipse(0,0,rad_end,0,angle1,angle2);
 		lsector->SetFillStyle(0);
-		lsector->SetLineWidth(2);
+		lsector->SetLineWidth(4);
+		lsector->SetLineColor(color);
 		lsector->Draw();
 
-		float RingInnerRadius = TMath::Sqrt(x*x+y*y) - 0.5*(OuterRadius-InnerRadius)/NumberOfRings; 
-		float RingOuterRadius = RingInnerRadius + (OuterRadius-InnerRadius)/NumberOfRings;  
+        int radius = TMath::Sqrt(x*x+y*y); 
+		float RingInnerRadius = (TMath::Floor((radius-rad_start)/rad_pitch) * rad_pitch) + rad_start;
+		//float RingInnerRadius = TMath::Sqrt(x*x+y*y) - 0.5*(rad_end-rad_start)/rings_number; 
+		float RingOuterRadius = RingInnerRadius + rad_pitch;  
 		TEllipse  *lring1 = new TEllipse(0.0,0.0,RingInnerRadius,RingInnerRadius);
 		TEllipse  *lring2 = new TEllipse(0.0,0.0,RingOuterRadius,RingOuterRadius);
 		lring1->SetFillStyle(0);
-		lring1->SetLineColor(1);
-		lring2->SetLineWidth(2);
+		lring1->SetLineColor(color);
+		lring2->SetLineWidth(4);
 		lring2->SetFillStyle(lring1->GetFillStyle());
 		lring2->SetLineColor(lring1->GetLineColor());
 		lring1->SetLineWidth(lring2->GetLineWidth());
@@ -386,7 +430,8 @@ void  PrintInfo(const char* segment){
 	cout << "===================================================================================="<< endl; 	     
 	cout << "Semikon Segment ID :  " << gMap[segment].SegIDSemikon   << endl; 
 	cout << "------------------------------------------------------------------ F E T - B O A R D"<< endl; 	     
-	cout << "SemikonPCBconnector\t\t" << 		  gMap[segment].SemikonPCBconnector << endl;	  
+	cout << "SemikonPCBconnector\t\t" << 		  gMap[segment].SemikonPCBconnector << endl;
+    cout << "SemikonPCBpin\t\t\t" << 		  	  gMap[segment].SemikonPCBpin << endl;	  	  
 	cout << "FETBoardSlot\t\t\t" <<   			  gMap[segment].FETBoardSlot << endl; 
 	cout << "---------------------------------------------------------------------- P R E A M P S"<< endl; 	     
 	cout << "PreampAbsolutePosition\t\t" << 	  gMap[segment].PreampAbsolutePosition	  << endl; 
@@ -545,6 +590,113 @@ if ( select == 4 ) {
 	}
 	
 }
+
+
+
+void MakeSiLiGraphs() {
+   
+	TFile* file = new TFile("SiLiSegmentsGraph.root","RECREATE");
+	TCanvas *c1 = new TCanvas("SiLiSegments","SiLiSegments",10,10,700,700);	
+	TMultiGraph *mg = new TMultiGraph("all","all");
+	TGraph *gr[10];
+				
+	Double_t x[NODES]; 
+	Double_t y[NODES];
+
+	float phi_mini_pitch = phi_pitch/((NODES-3)/2); 
+	float rad_min = 0 ;
+	float rad_max = 0 ;
+	float phi_min = 0 ;
+	float phi_max = 0 ;
+	float rad_current = 0 ;
+	float phi_current = 0 ;
+	  	       	   	
+	for (Int_t i = 0 ; i < rings_number ; i++) { // loop on rings 
+		// rad_min and rad max are the borders of the current segment
+		rad_min = rad_start + i*rad_pitch ; 
+		rad_max = rad_start + (i+1)*rad_pitch ;
+
+		// phi min and phi max are the borders of the current segment	
+		phi_min = phi_start ;
+		phi_max = phi_min + phi_pitch ;
+		
+		// phi and rad are now defined for one segment
+		phi_current = phi_min ; // Initiate the current phi as the minimum phi on the current segment
+		rad_current = rad_min ; // Initiate the current radius as the inner radius on the current segment
+		int sign = +1 ; // Initiate the current radius as the minimum radius on the current segment
+		
+		for (Int_t k = 0; k < NODES-1 ; k++) { // loop on the nodes, first for inner border with sign = +1
+		 
+			x[k] =rad_current*TMath::Cos( phi_current ) ; 
+			y[k] =rad_current*TMath::Sin( phi_current ) ;
+		
+			if (k==0) {//Assign the last point
+	 	 		x[NODES-1] = x[k]; 
+	 	 		y[NODES-1] = y[k];
+				}
+				
+			 if ( phi_current == phi_max && rad_current == rad_min) { // Jump up to radius max but keep the same phi ()
+				rad_current = rad_max ; 
+				sign = 0;
+				}
+			else if ( rad_current == rad_max && phi_current > phi_min) {
+				sign = -1;
+				}
+		
+			phi_current = phi_current + sign*phi_mini_pitch;  // loop within segment on outer border, counter clock wise
+ 	 	
+ 	 		}// finish the loop with the segment 
+			
+		 gr[i]= new TGraph(NODES,x,y);
+					
+		}
+		
+	file->cd() ; 
+	
+	for (Int_t i = 0; i < rings_number ; i++) { // loop on rings		
+		for (Int_t j = 0; j < sectors_number ; j++) { // loop on sectors
+			TString name = Form("S%dR%d",j,i) ;
+			gr[i]->SetNameTitle(name,name);
+	 		TGraph* g = RotateGraph(gr[i],j*phi_pitch) ; 
+			g->SetNameTitle(name,name); 
+			g->Write();  
+			mg->Add(g,"lp"); 
+		}						
+	}
+
+	c1->cd();
+	mg->Draw("a");    
+    mg->Write(); 
+	file->Write(); 
+}
+
+// Rotate the graphs used to define the bins in the TH2poly graph
+TGraph* RotateGraph(TGraph* g, float angle) { // radian
+
+	Double_t* x = g->GetX(); 
+	Double_t* y = g->GetY();
+	Int_t n = g->GetN();
+		 	 	   
+	//new Values 
+	Double_t* xx = new Double_t[n]; 
+	Double_t* yy = new Double_t[n];
+
+	for (int i=0 ; i< n ; i++){
+		TVector2 v1(x[i],y[i]);
+		TVector2 v2 = v1.Rotate(angle); //radian 
+		xx[i]=v2.X(); 
+		yy[i]=v2.Y();	
+	}
+ 
+	TGraph* gg = new TGraph(n,xx,yy) ; 
+	gg->SetLineColor(kWhite); // Blue Green Red and White/Black are the color that should be assigned to the borders 
+	gg->SetLineWidth(2);
+	gg->SetMarkerColor(kWhite);
+	gg->SetMarkerStyle(1);
+
+	return gg ; 
+}
+
 
 
 void Stop() {
