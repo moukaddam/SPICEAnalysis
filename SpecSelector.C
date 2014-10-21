@@ -94,6 +94,7 @@ void ReadSiLiMap(TString CsvFileName);
 void PrintInfo(const char* SegmentID) ; 
 TGraph* RotateGraph(TGraph* g, float angle ) ;
 void MakeSiLiGraphs(); 
+void SetColor(Int_t red, Int_t green, Int_t blue); 
 
 //Definitions 
 #define DEBUG 0
@@ -182,14 +183,10 @@ void ReadSiLiMap(TString CsvFileName ){
 	anchor == 0 ; 
 	}
 	
-	cout<< "anchor : " << anchor << endl ; 
-	getchar(); 
-
-	
 	while (true) {
 
             getline (csv_file,buffer_string);
-			cout << "\nReading : "<<buffer_string << endl;
+			//cout << "\nReading : "<<buffer_string << endl;
 	 		istringstream ss(buffer_string);
 	 		
 	 		//if end of file break 
@@ -202,7 +199,7 @@ void ReadSiLiMap(TString CsvFileName ){
 			//Fill all the values in the right slot 	
 			for (int i=0 ; i < nb_columns ; i++){
 				buffer_value[i];
-				cout<< " * "<< buffer_value[anchor] << "/"<< buffer_value[i]<<" " ;
+				//cout<< " * "<< buffer_value[anchor] << "/"<< buffer_value[i]<<" " ;
 				if ( buffer_word[i] == "Mnemonic")  						gMap[buffer_value[anchor]].Mnemonic		        			= buffer_value[i];
 				if ( buffer_word[i] == "Sector")  						gMap[buffer_value[anchor]].Sector 		       		 		= atoi( (buffer_value[i]).c_str() );
 				if ( buffer_word[i] == "Ring")  							gMap[buffer_value[anchor]].Ring 			        			= atoi( (buffer_value[i]).c_str() );
@@ -277,6 +274,7 @@ void CreateSiLiDynamicMap(){
 		TString title = "Bi207" ;
 		gCanvas = new TCanvas("SiLiDynamicMap","SiLiDynamicMap",10,10,700,700);
 		gCanvas->ToggleEventStatus();
+		gCanvas->SetLogz();
 		gCanvas->AddExec("ex","SegmentClicked()");
 		}
 	
@@ -316,7 +314,7 @@ void CreateSiLiDynamicMap(){
    }
   //gBenchmark->Show("Filling");
 
-   gH2Poly->Draw("LF COL");	
+   gH2Poly->Draw("LF COLZ");	
 	
 }
 
@@ -342,34 +340,23 @@ void SegmentClicked() {
 
 	if (event == 51) 
 		{
-	
+		float theta = TMath::ATan(y/x) * TMath::RadToDeg(); // from Radians to degrees
+		if (x > 0 && y > 0 ) theta = theta ; // x<0 ; y<0 	
+		if (x < 0 && y > 0 ) theta = theta+180 ; // x<0 ; y<0 
+		if (x > 0 && y < 0 ) theta = theta-30 ; // x>0 ; y<0 
+		if (x < 0 && y < 0 ) theta = theta+180 ; // x<0 ; y<0 
 
-		float theta = TMath::ATan(y/x) * TMath::RadToDeg(); // in Radians 
-		if (x < 0 ) theta = theta + 180 ;
-		
 		int angle1 = (int)theta - (int)theta % 30; 
-		int angle2 = angle1+(30);
-
-  /*
-    //Get the color of premap 
-    TString segment = g->GetName();
-    TString PreampPosition = gMap[segment].PreampAbsolutePosition;
-    int color = kBlack ;  
-  if (PreampPosition == "LR" || PreampPosition == "RR"  ) color = kRed; 
-    else if (PreampPosition == "LW" || PreampPosition == "RW"  ) color = kBlack;
-        else if (PreampPosition == "LG" || PreampPosition == "RG"  ) color = kGreen+2;
-            else if (PreampPosition == "LB" || PreampPosition == "RB"  ) color = kBlue;  
-      */
+		int angle2 = angle1 + 30;
 
     //Get the color of premap 
 	int binxy = gH2Poly->FindBin(x,y) ;
 	TString PreampPosition = gMap[gH2Poly->GetBinTitle(binxy)].PreampAbsolutePosition;
     int color = kWhite ;  
-	  if (PreampPosition == "LR" || PreampPosition == "RR"  ) color = kRed; 
-		else if (PreampPosition == "LW" || PreampPosition == "RW"  ) color = kBlack;
-		    else if (PreampPosition == "LG" || PreampPosition == "RG"  ) color = kGreen+2;
-		        else if (PreampPosition == "LB" || PreampPosition == "RB"  ) color = kBlue;  
-      
+	if (PreampPosition == "LR" || PreampPosition == "RR"  ) color = kRed ;
+		else if (PreampPosition == "LW" || PreampPosition == "RW"  ) color = kBlack ; 
+			else if (PreampPosition == "LG" || PreampPosition == "RG"  ) color = kGreen+2 ;
+				else if (PreampPosition == "LB" || PreampPosition == "RB"  ) color = kBlue ;
    
 		TEllipse  *lsector = new TEllipse(0,0,rad_end,0,angle1,angle2);
 		lsector->SetFillStyle(0);
@@ -379,7 +366,6 @@ void SegmentClicked() {
 
         int radius = TMath::Sqrt(x*x+y*y); 
 		float RingInnerRadius = (TMath::Floor((radius-rad_start)/rad_pitch) * rad_pitch) + rad_start;
-		//float RingInnerRadius = TMath::Sqrt(x*x+y*y) - 0.5*(rad_end-rad_start)/rings_number; 
 		float RingOuterRadius = RingInnerRadius + rad_pitch;  
 		TEllipse  *lring1 = new TEllipse(0.0,0.0,RingInnerRadius,RingInnerRadius);
 		TEllipse  *lring2 = new TEllipse(0.0,0.0,RingOuterRadius,RingOuterRadius);
@@ -391,7 +377,6 @@ void SegmentClicked() {
 		lring1->SetLineWidth(lring2->GetLineWidth());
 		lring1->Draw();
 		lring2->Draw();
-
 
 		gCanvas->Update();
 		lring1->Delete();
@@ -689,8 +674,8 @@ TGraph* RotateGraph(TGraph* g, float angle) { // radian
 	}
  
 	TGraph* gg = new TGraph(n,xx,yy) ; 
-	gg->SetLineColor(kWhite); // Blue Green Red and White/Black are the color that should be assigned to the borders 
-	gg->SetLineWidth(2);
+	gg->SetLineColor(kWhite); 
+	gg->SetLineWidth(0);
 	gg->SetMarkerColor(kWhite);
 	gg->SetMarkerStyle(1);
 
@@ -705,6 +690,33 @@ void Stop() {
 	if (c=='q') exit(-1) ;
 	}
 
+
+void SetColor(Int_t red, Int_t green, Int_t blue ){
+   
+   //Default
+   if (red==0 && green==0 && blue==0 )  {
+	   gStyle->SetPalette(1);
+	   gCanvas->Modified();
+	   gCanvas->Update();
+	   return; 
+	   }
+   
+    const Int_t NumberOfStops = 5;
+    const Int_t NCont = 255;
+
+    Double_t StopsPositions[NumberOfStops] = { 0.00, 0.25, 0.50, 0.75, 1.00 };
+    Double_t Red[NumberOfStops]   = { (red*0.05)/255, (red*0.25)/255, (red*0.50)/255, (red*0.75)/255, (red*1.00)/255};
+    Double_t Green[NumberOfStops] = { (green*0.05)/255, (green*0.25)/255, (green*0.50)/255, (green*0.75)/255, (green*1.00)/255 };
+    Double_t Blue[NumberOfStops]  = { (blue*0.05)/255, (blue*0.25)/255, (blue*0.50)/255, (blue*0.75)/255, (green*1.00)/255 };
+    
+    Int_t FI = TColor::CreateGradientColorTable(NumberOfStops, StopsPositions, Red, Green, Blue, NCont);
+    gStyle->SetNumberContours(NCont);
+   
+   gCanvas->Modified();
+   gCanvas->Update();
+   return; 
+   
+}
 
 /*
 		if (event == 1) {
